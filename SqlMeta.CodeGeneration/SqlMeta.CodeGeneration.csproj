@@ -123,7 +123,6 @@
     </Content>
     <Content Include="SqlTableToCSharpInterface.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>SqlTableToCSharpInterface.cs</LastGenOutput>
     </Content>
     <Content Include="SqlTableToCSharpMapper.tt">
       <Generator>TextTemplatingFileGenerator</Generator>

@@ -11,8 +11,9 @@
 		private const string Project = "YourProjectName";
 
 		#region Secondary Inputs
-		private const string ContextFolder = "Contexts"; 
+		private const string ContextFolder = "Contexts";
 		private const string EntityFolder = "Entities";
+		private const string InterfaceFolder = EntityFolder + ".Interfaces";
 		#endregion
 
 		#region Publically Used Properties
@@ -20,6 +21,7 @@
 		public static string Database = DatabaseName;
 		public static string DatabaseNamespace = BuildNamespace(ContextFolder);
 		public static string EntityNamespace = BuildNamespace(EntityFolder);
+		public static string InterfaceNamespace = BuildNamespace(InterfaceFolder);
 		#endregion
 
 		#region Helpers
