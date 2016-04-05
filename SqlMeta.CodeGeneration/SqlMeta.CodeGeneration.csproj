@@ -131,7 +131,6 @@
     </Content>
     <Content Include="SqlToCodeFirstEntities.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>SqlToCodeFirstEntities.cs</LastGenOutput>
     </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

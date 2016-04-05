@@ -9,14 +9,14 @@
 <#@ import namespace="SqlMeta" #>
 <#@ include file="Manager.tt" #>
 <# var manager = Manager.Create(Host, GenerationEnvironment); #>
-<#@ output extension=".cs" #>
+<#@ output extension="/" #>
 <# var extention = "cs"; #>
 
 <# 
     var dataRepo = new MetaRepository(manager.ConnectionString);
     var tables = dataRepo.GetTableInfo(schema:"dbo").Where(t => !t.TableName.Contains("sysdiagram")).OrderBy(t=>t.TableName).ToList();
-    var nameSpace = Inputs.EntityNamespace;
-    var className = "BusinessProcessManagementContext";
+    var nameSpace = Inputs.DatabaseNamespace;
+    var className = Inputs.Database + "Context";
 
 	manager.StartNewFile(String.Format("{0}.{1}",className, extention));
 #>
