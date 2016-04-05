@@ -1,22 +1,20 @@
 ﻿<#@ template debug="true" hostspecific="true" language="C#" #>
 <#@ assembly name="System.Core" #>
-<#@ assembly name="$(SolutionDir)packages\SqlMeta.1.0.5847.37675\lib\SqlMeta.dll" 
-#><#@ assembly name="$(SolutionDir)packages\Dapper.1.42\lib\net45\Dapper.dll" 
-#>
+<#@ assembly name="$(ProjectDir)\bin\Debug\SqlMeta.dll" #>
+<#@ assembly name="$(ProjectDir)\bin\Debug\Dapper.dll" #>
+<#@ import namespace="SqlMeta" #>
 <#@ import namespace="SqlMeta.Data.Repositories" #>
 <#@ import namespace="System.Linq" #>
 <#@ import namespace="System.Text" #>
 <#@ import namespace="System.Collections.Generic" #>
 <#@include file="Manager.tt"#>
 <# var manager = Manager.Create(Host, GenerationEnvironment); #>
-<#@ output extension=".cs" #>
-<#var extention = "cs";#>
-
-
+<#@ output extension="/" #>
+<# var extention = "cs"; #>
 <# 
     var dataRepo = new MetaRepository(manager.ConnectionString);
-    var tables = dataRepo.GetTableInfo(schema:"Refund").Where(t => !t.TableName.Contains("sysdiagram")).ToList();
-    var nameSpace = "EnterpriseCodeGeneration.SqlTableToCSharpClass";
+    var tables = dataRepo.GetTableInfo(schema:"dbo").Where(t => !t.TableName.Contains("sysdiagram")).ToList();
+    var nameSpace = Inputs.EntityNamespace;
 
 foreach (var table in tables)
 {
@@ -28,13 +26,16 @@ namespace <#=nameSpace#>
 
 	public class <#=table.TableName#>
 	{
-	<# foreach (SqlMeta.Data.Types.SqlColumnInfo column in table.Columns)
-	{#>
-	public <#=Manager.GetCSharpTypeFromSqlType(sqlType:column.DataType,isNullable:column.IsNullable)#> <#=column.ColumnName#> {get;set;}
-	<#}#>
+<# 
+foreach (SqlMeta.Data.Types.SqlColumnInfo column in table.Columns)
+{
+#>
+	    public <#=Manager.GetCSharpTypeFromSqlType(sqlType:column.DataType,isNullable:column.IsNullable)#> <#=column.ColumnName#> { get; set; }
+<# 
 }
-}
-	
+#>
+    }
+}	
 <# manager.EndBlock(); #>
 
 <#
