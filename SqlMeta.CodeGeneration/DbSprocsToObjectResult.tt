@@ -1,0 +1,50 @@
+﻿<#@ template debug="true" hostspecific="true" language="C#" 
+#><#@ assembly name="System.Core" 
+#><#@ assembly name="$(SolutionDir)packages\SqlMeta.1.0.5847.37675\lib\SqlMeta.dll" 
+#><#@ assembly name="$(SolutionDir)packages\Dapper.1.42\lib\net45\Dapper.dll" 
+#><#@ assembly name="System.Data, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" 
+#><#@ import namespace="SqlMeta.Data.Repositories" #>
+<#@ import namespace="System.Data" #><#@ import namespace="System.Linq" #><#@ import namespace="System.Text" 
+#><#@ import namespace="System.Collections.Generic" 
+#><#@include file="Manager.tt"
+#><# var manager = Manager.Create(Host, GenerationEnvironment); 
+#><#@ output extension=".csGen"
+#><# var extention = "csGen";
+#><#  
+	var databaseName = "Chad";
+    var dataRepo = new MetaRepository(manager.ConnectionString);
+    var sprocs = dataRepo.GetStoredProcedureInfo(schema:"dbo",procName:"TaskSelect");
+    var nameSpace = "FixThisNameSpace";
+    var runningSprocNames = new List<string>();
+#>
+
+
+<#
+//This starts the related classes associated with the non boiler plate sprocs
+var sprocResultTypesNamespace = "Fix.This.Namespace";
+foreach (var proc in sprocs)
+{
+	manager.StartNewFile(String.Format("{0}.{1}", proc.Name, extention));
+#>		
+namespace <#=sprocResultTypesNamespace#>
+{
+	using System;
+
+	public partial class <#=proc.Name#>
+	{
+	<#
+    foreach (var column in proc.ResultColumns)
+    {#>
+        <#=String.Format("public {0} {1} {2}",Manager.CSharpDeclarationFromDataProperties(cSharpDataType: column.DataType.ToString(), isAllowDbNull:column.AllowDBNull), column.ColumnName,"{get;set;}")#>
+	<#
+	}
+	#>
+}
+}
+<#   
+}
+#>
+
+<# manager.EndBlock(); #>
+
+<# manager.Process(true); #>

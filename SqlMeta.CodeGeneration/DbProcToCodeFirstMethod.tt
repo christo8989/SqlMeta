@@ -1,0 +1,228 @@
+﻿<#@ template debug="true" hostspecific="true" language="C#" #>
+<#@ assembly name="System.Core" #>
+<#@ assembly name="$(SolutionDir)packages\SqlMeta.1.0.5847.37675\lib\SqlMeta.dll" #>
+<#@ assembly name="$(SolutionDir)packages\Dapper.1.42\lib\net45\Dapper.dll" #>
+<#@ assembly name="System.Data, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" #>
+<#@ import namespace="SqlMeta.Data.Repositories" #>
+<#@ import namespace="SqlMeta.Data.Types" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="System.Xml.Serialization" #><#@include file="Manager.tt" #>
+<# var manager = Manager.Create(Host, GenerationEnvironment); #>
+<#@ output extension=".cs" #>
+<# 
+	var extention = "cs";
+	var databaseName = "Blah";
+    var dataRepo = new SqlMeta.Data.Repositories.MetaRepository(manager.ConnectionString);
+    var sprocs = dataRepo.GetStoredProcedureInfo(schema:"Refund",procName:"stpGetRefundParameters").Where(t => !t.Name.Contains("sysdiagram")).ToList();
+    var nameSpace = "ExecuteSqlCommandCodeFirst.Entities";
+#>
+namespace <#=nameSpace#>
+{
+    using System;
+    using System.Collections.Generic; 
+    using System.Linq;
+	using System.Data.SqlClient;
+	using System.Threading.Tasks;
+
+	public partial class <#=databaseName#>Context
+	{
+	    private object ValueOrDbNull(object input)
+        {
+            return input ?? DBNull.Value;
+        }
+
+		#region StoredProcedures
+		<#
+    foreach (var proc in sprocs)
+		{
+			var procSchemaAndName = String.Format("[{0}].[{1}]", proc.Schema,proc.Name);
+		    var procResultClassName = proc.ResultColumns.Any() ? String.Format("{0}_Result", proc.Name) : "object";
+		    var methodName = String.Format("{0}Async", proc.Name);
+			
+		    if (proc.ResultColumns.Any())
+		    {#>
+		  public async Task<List<<#=procResultClassName#>>> <#=methodName#>(<#=BuildFindAndSearchParameters(parameters:proc.Parameters,sprocName:proc.Name)#>)
+			{
+				return await this.Database.SqlQuery<<#=procResultClassName#>>(
+                sql: "<#=procSchemaAndName#> <#=this.BuildSqlParamsForInlineSqlStatement(proc.Parameters)#> ",
+                parameters: new object[]
+                {
+                    <#=this.BuildSqlParameterObjects(proc.Parameters)#>
+                })
+                .ToListAsync()
+                .ConfigureAwait(false);
+			}      
+			<#}
+		    else
+		    {#>
+		     public async Task<int> <#=methodName#>(<#=BuildFindAndSearchParameters(parameters:proc.Parameters,sprocName:proc.Name)#>)
+			{
+				return await this.Database.ExecuteSqlCommandAsync(
+                sql: "<#=procSchemaAndName#> <#=this.BuildSqlParamsForInlineSqlStatement(proc.Parameters)#> ",
+                parameters: new object[]
+                {
+                    <#=this.BuildSqlParameterObjects(proc.Parameters)#>
+                })
+                .ConfigureAwait(false);
+			}   
+		    <#}
+
+
+			if (proc.ResultColumns.Any())
+		    {#>
+		  public List<<#=procResultClassName#>> <#=proc.Name#>(<#=BuildFindAndSearchParameters(parameters:proc.Parameters,sprocName:proc.Name)#>)
+			{
+				return this.Database.SqlQuery<<#=procResultClassName#>>(
+                sql: "<#=procSchemaAndName#> <#=this.BuildSqlParamsForInlineSqlStatement(proc.Parameters)#> ",
+                parameters: new object[]
+                {
+                    <#=this.BuildSqlParameterObjects(proc.Parameters)#>
+                })
+                .ToList();
+			}      
+			<#}
+		    else
+		    {#>
+		     public int <#=proc.Name#>(<#=BuildFindAndSearchParameters(parameters:proc.Parameters,sprocName:proc.Name)#>)
+			{
+				return this.Database.ExecuteSqlCommand(
+                sql: "<#=procSchemaAndName#> <#=this.BuildSqlParamsForInlineSqlStatement(proc.Parameters)#> ",
+                parameters: new object[]
+                {
+                    <#=this.BuildSqlParameterObjects(proc.Parameters)#>
+                });
+                
+			}   
+		    <#}
+
+
+
+		#>
+		<#}#>
+
+
+		#endregion
+
+			}
+		}
+		
+<#
+//This starts the related classes associated with the non boiler plate sprocs
+var sprocResultTypesNamespace = "ExecuteSqlCommandCodeFirst.Entities";
+    foreach (var proc in sprocs)
+    {
+        if (proc.ResultColumns.Any())
+        {
+            var className = String.Format("{0}_Result", proc.Name);
+            manager.StartNewFile(String.Format("{0}.{1}", className, extention));
+#>		
+namespace <#=sprocResultTypesNamespace #>
+{
+	using System;
+
+	public partial class <#=className#>
+	{
+	<#
+    foreach (var column in proc.ResultColumns)
+    { #>
+        <#=
+    String.Format("public {0} {1} {2}",
+        Manager.CSharpDeclarationFromDataProperties(cSharpDataType: column.DataType.ToString(), 
+			isAllowDbNull: column.AllowDBNull && column.DataType.IsValueType), column.ColumnName, "{ get; set; }") #>
+	<#
+    }
+	#>
+}
+}
+<#
+        }
+    }
+#>
+
+<# manager.EndBlock(); #>
+
+<# manager.Process(true); #>
+
+<#+
+    internal string BuildFindAndSearchParameters(List<SqlParameterInfo> parameters, string sprocName = "")
+    {
+        var sb = new StringBuilder();
+
+        var comma = String.Empty;
+        var isSearchOrFind = sprocName.Contains("Search") || sprocName.Contains("Find");
+        foreach (var p in parameters)
+        {
+            sb.Append(comma);
+            sb.Append(Manager.GetCSharpTypeFromSqlType(sqlType: p.ParameterDataType, isNullable: isSearchOrFind));
+            sb.Append(" ");
+            sb.Append(Manager.FirstToLower(Manager.StripAtSign(p.Name)));
+            if (isSearchOrFind) sb.Append(" = null");
+            comma = ",";
+        }
+
+        return sb.ToString();
+    }
+
+    internal string BuildInputParameterObject(List<SqlParameterInfo> parameters)
+    {
+        var sb = new StringBuilder();
+
+        var comma = string.Empty;
+        foreach (var p in parameters)
+        {
+            sb.Append(comma);
+			sb.Append(Manager.NewLine());
+            var strippedName = Manager.StripAtSign(p.Name);
+            var lowerName = Manager.FirstToLower(strippedName);
+            sb.Append(String.Format("{0} = {1}", strippedName, lowerName));
+            comma = ",";
+        }
+
+        return sb.ToString();
+    }
+
+	internal string BuildInputParameterObjectInsertUpdate(List<SqlParameterInfo> parameters,string inputObjectName)
+    {
+        var sb = new StringBuilder();
+
+        var comma = string.Empty;
+        foreach (var p in parameters)
+        {
+            sb.Append(comma);
+			sb.Append(Manager.NewLine());
+            var strippedName = Manager.StripAtSign(p.Name);
+            var lowerName = Manager.FirstToLower(inputObjectName);
+            sb.Append(String.Format("{0} = {1}.{0}", strippedName, lowerName));
+            comma = ",";
+        }
+
+        return sb.ToString();
+    }
+
+    internal string BuildSqlParameterObjects(List<SqlParameterInfo> parameters)
+    {
+        var sb = new StringBuilder();
+        for(int i =0;i<parameters.Count();i++)
+        {
+            sb.Append(String.Format("new SqlParameter(parameterName: \"{0}\", value: ValueOrDbNull({1})){2}",
+                parameters[i].Name,
+                Manager.FirstToLower(Manager.StripAtSign(parameters[i].Name)),
+				(i == parameters.Count() - 1) ? string.Empty : ",\n"));
+        }
+
+        return sb.ToString();
+    }
+
+    internal string BuildSqlParamsForInlineSqlStatement(List<SqlParameterInfo> parameters)
+    {
+        var sb = new StringBuilder();
+        for (int i = 0; i < parameters.Count(); i++)
+        {
+            sb.Append(parameters[i].Name);
+            sb.Append(i == (parameters.Count() - 1) ? string.Empty : ", ");
+        }
+        return sb.ToString();
+    }
+#>

@@ -1,0 +1,63 @@
+﻿<#@ template debug="true" hostspecific="true" language="C#" #>
+<#@ assembly name="System.Core" #>
+<#@ assembly name="$(ProjectDir)\bin\Debug\SqlMeta.dll" #>
+<#@ assembly name="$(ProjectDir)\bin\Debug\Dapper.dll" #>
+<#@ import namespace="SqlMeta.Data.Repositories" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="SqlMeta" #>
+<#@ include file="Manager.tt" #>
+<# var manager = Manager.Create(Host, GenerationEnvironment); #>
+<#@ output extension=".cs" #>
+<# var extention = "cs"; #>
+
+<# 
+    var dataRepo = new MetaRepository(manager.ConnectionString);
+    var tables = dataRepo.GetTableInfo(schema:"dbo").Where(t => !t.TableName.Contains("sysdiagram")).OrderBy(t=>t.TableName).ToList();
+    var nameSpace = Inputs.EntityNamespace;
+    var className = "BusinessProcessManagementContext";
+
+	manager.StartNewFile(String.Format("{0}.{1}",className, extention));
+#>
+namespace <#=nameSpace#>
+{
+	using System;
+    using System.ComponentModel.DataAnnotations;
+    using System.ComponentModel.DataAnnotations.Schema;
+
+	public partial class <#=className#>
+	{
+
+		public <#=className#>() : base("name=")//TODO fill in the name of the connection string!!
+		{
+		}
+
+<#
+foreach (var table in tables)
+{
+    var strippedTableName = StripTableName(table.TableName);
+#>
+		public virtual DbSet<<#=strippedTableName#>> <#=Manager.Pluralize(strippedTableName)#> {get;set;}
+<#
+}
+#>
+
+		protected override void OnModelCreating(DbModelBuilder modelBuilder)
+		{
+		}
+	}
+}
+	
+<# manager.EndBlock(); #>
+
+
+
+<# manager.Process(true); #>
+
+<#+
+    public static string StripTableName(string input)
+    {
+        return input.Replace("tbl", string.Empty);
+    }
+#>

@@ -1,0 +1,143 @@
+﻿<#@ template debug="true" hostspecific="true" language="C#" 
+#><#@ assembly name="System.Core" 
+#><#@ assembly name="$(SolutionDir)packages\SqlMeta.1.0.5847.37675\lib\SqlMeta.dll" 
+#><#@ assembly name="$(SolutionDir)packages\Dapper.1.42\lib\net45\Dapper.dll" 
+#><#@ assembly name="System.Data, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" 
+#><#@ import namespace="SqlMeta.Data.Repositories" #><#@ import namespace="SqlMeta.Data.Types" #><#@ import namespace="System.Linq" #><#@ import namespace="System.Text" 
+#><#@ import namespace="System.Collections.Generic" 
+#><#@include file="Manager.tt"
+#><# var manager = Manager.Create(Host, GenerationEnvironment); 
+#><#@ output extension=".csGen"
+#><# var extention = "csGen";
+#><#  
+	var databaseName = "Chad";
+    var dataRepo = new MetaRepository(manager.ConnectionString);
+    //var tableNames = dataRepo.GetTableNames().Where(t => !t.Contains("sysdiagram")).ToList();
+	//var tables = dataRepo.GetTableInfo().Where(t => !t.TableName.Contains("sysdiagram")).ToList();
+    var sprocs = dataRepo.GetStoredProcedureInfo(schema:"Queuing",procName:"[stpInsertQueuedItem]").Where(t => !t.Name.Contains("sysdiagram")).ToList();
+    var nameSpace = " Ch.Core.SqlMetaAccess";
+    var runningSprocNames = new List<string>();
+#>namespace <#=nameSpace#>
+{
+    using System;
+    using DatabaseProvider.Base;
+    using System.Collections.Generic;
+    using System.Linq;
+
+	public partial class <#=databaseName#>Context : I<#=databaseName#>Context
+	{
+
+		private readonly IDapperWrapper _dbWrapper;
+	
+		public <#=databaseName#>Context(IDapperWrapper dbWrapper)
+		{
+			_dbWrapper = dbWrapper;
+		}
+
+		#region GeneratedNonBoilerPlateSprocs
+		<#
+		var nonBoilerBlateSprocs = sprocs.Where(s => runningSprocNames.All(rs => rs != s.Name)).OrderBy(s=>s.Name).ToList();
+		foreach (var proc in nonBoilerBlateSprocs)
+		{#>
+
+			public List<<#=proc.Name#>> <#=proc.Name#>(<#=BuildFindAndSearchParameters(parameters:proc.Parameters,sprocName:proc.Name)#>)
+			{
+				var input = new {<#=BuildInputParameterObject(proc.Parameters)#>
+				};
+				return _dbWrapper.CallProcedure<<#=proc.Name#>>(procedureName: <#=String.Format("\"[{0}].[{1}]\"",proc.Schema,proc.Name)#>, param: input).ToList();
+			}
+
+		<#}#>
+		#endregion
+
+
+			}
+		}
+
+
+<#
+//This starts the related classes associated with the non boiler plate sprocs
+var sprocResultTypesNamespace = "Ch.Core.SqlMetaAccess";
+foreach (var proc in nonBoilerBlateSprocs)
+{
+	manager.StartNewFile(String.Format("{0}.{1}", proc.Name, extention));
+#>		
+namespace <#=sprocResultTypesNamespace#>
+{
+	using System;
+
+	public partial class <#=proc.Name#>
+	{
+	<#
+    foreach (var column in proc.ResultColumns)
+    {#>
+        <#=String.Format("public {0} {1} {2}",Manager.CSharpDeclarationFromDataProperties(cSharpDataType: column.DataType.ToString(), isAllowDbNull:column.AllowDBNull), column.ColumnName,"{get;set;}")#>
+	<#
+	}
+	#>
+}
+}
+<#   
+}
+#>
+
+<# manager.EndBlock(); #>
+
+<# manager.Process(true); #>
+
+<#+
+    internal string BuildFindAndSearchParameters(List<SqlParameterInfo> parameters, string sprocName = "")
+    {
+        var sb = new StringBuilder();
+
+        var comma = String.Empty;
+        var isSearchOrFind = sprocName.Contains("Search") || sprocName.Contains("Find");
+        foreach (var p in parameters)
+        {
+            sb.Append(comma);
+            sb.Append(Manager.GetCSharpTypeFromSqlType(sqlType: p.ParameterDataType, isNullable: isSearchOrFind));
+            sb.Append(" ");
+            sb.Append(Manager.FirstToLower(Manager.StripAtSign(p.Name)));
+            if (isSearchOrFind) sb.Append(" = null");
+            comma = ",";
+        }
+
+        return sb.ToString();
+    }
+
+    internal string BuildInputParameterObject(List<SqlParameterInfo> parameters)
+    {
+        var sb = new StringBuilder();
+
+        var comma = string.Empty;
+        foreach (var p in parameters)
+        {
+            sb.Append(comma);
+			sb.Append(Manager.NewLine());
+            var strippedName = Manager.StripAtSign(p.Name);
+            var lowerName = Manager.FirstToLower(strippedName);
+            sb.Append(String.Format("{0} = {1}", strippedName, lowerName));
+            comma = ",";
+        }
+
+        return sb.ToString();
+    }
+
+	internal string BuildInputParameterObjectInsertUpdate(List<SqlParameterInfo> parameters,string inputObjectName)
+    {
+        var sb = new StringBuilder();
+
+        var comma = string.Empty;
+        foreach (var p in parameters)
+        {
+            sb.Append(comma);
+			sb.Append(Manager.NewLine());
+            var strippedName = Manager.StripAtSign(p.Name);
+            var lowerName = Manager.FirstToLower(inputObjectName);
+            sb.Append(String.Format("{0} = {1}.{0}", strippedName, lowerName));
+            comma = ",";
+        }
+
+        return sb.ToString();
+    }
+#>

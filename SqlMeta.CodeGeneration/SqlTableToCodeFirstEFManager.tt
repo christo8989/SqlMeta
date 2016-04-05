@@ -1,0 +1,101 @@
+﻿<#@ template debug="true" hostspecific="true" language="C#" #>
+<#@ assembly name="System.Core" #>
+<#@ assembly name="$(ProjectDir)\Templates\SqlMeta.dll" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@include file="Manager.tt"#>
+<# var manager = Manager.Create(Host, GenerationEnvironment); #>
+<#@ output extension=".cs" #>
+<#var extention = "cs";#>
+
+<# 
+    var dataRepo = new MetaRepository(manager.ConnectionString);
+    var tables = dataRepo.GetTableInfo(schema:"Queuing").Where(t => !t.TableName.Contains("sysdiagram")).OrderBy(t=>t.TableName).ToList();
+    var nameSpace = " BPM.Queuing.Core.Managers";
+    var className = "QueuingManager";
+
+	manager.StartNewFile(String.Format("{0}.{1}",className, extention));
+#>
+namespace <#=nameSpace#>
+{
+    using System;
+    using System.Threading.Tasks;
+    using System.Xml.Linq;
+    using Data;
+
+	public partial class <#=className#>
+	{
+		
+		private BusinessProcessManagementContext _context = new BusinessProcessManagementContext();
+
+<#foreach (var table in tables)
+{
+var strippedTableName = StripTableName(table.TableName);
+#>
+	#region <#=strippedTableName#>
+	
+	public async Task<<#=strippedTableName#>> Create<#=strippedTableName#>(<#=BuildInputParameters(table.Columns)#>)
+	{
+		<#=BuildInputParameterObjectInsertUpdate(table)#>
+		this._context.<#=Manager.Pluralize(strippedTableName)#>.Add(<#=Manager.FirstToLower(strippedTableName)#>);
+		
+		await this._context.SaveChangesAsync();
+
+		return <#=Manager.FirstToLower(strippedTableName)#>;
+	}
+
+
+
+	#endregion		
+
+
+<#
+}
+#>
+	}
+}
+	
+<# manager.EndBlock(); #>
+
+
+
+<# manager.Process(true); #>
+
+<#+
+    public static string StripTableName(string input)
+    {
+        return input.Replace("tbl", string.Empty);
+    }
+
+    public static string BuildInputParameters(List<SqlColumnInfo> columns)
+    {
+		var sb = new StringBuilder();
+        var comma = string.Empty;
+		foreach (var c in columns)
+		{
+		    sb.Append(comma);
+		    sb.Append(String.Format("{0} {1}",Manager.GetCSharpTypeFromSqlType(c.DataType,c.IsNullable), Manager.FirstToLower(c.ColumnName)));
+			comma = ",";
+		}
+        return sb.ToString();
+    }
+
+	public static string BuildInputParameterObjectInsertUpdate(SqlTableInfo tableInfo)
+    {
+        var sb = new StringBuilder();
+
+	    var tableObjectName = StripTableName(tableInfo.TableName);
+		var lowerTableName = Manager.FirstToLower(tableObjectName);
+		sb.Append(String.Format("var {0} = new {1}();",lowerTableName,tableObjectName));
+
+        var comma = string.Empty;        
+		foreach (var c in tableInfo.Columns)
+		{
+		    sb.Append("\n");
+		    sb.Append(String.Format("{0}.{1} = {2};", lowerTableName, c.ColumnName, Manager.FirstToLower(c.ColumnName)));
+		}
+
+        return sb.ToString();
+    }
+#>

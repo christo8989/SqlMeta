@@ -72,6 +72,68 @@
       <Name>SqlMeta</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="DatabaseContext.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>DatabaseContext.csGen</LastGenOutput>
+    </Content>
+    <Content Include="DbProcToCodeFirstMethod.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>DbProcToCodeFirstMethod.cs</LastGenOutput>
+    </Content>
+    <Content Include="DbSprocsToCSharp.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>DbSprocsToCSharp.csGen</LastGenOutput>
+    </Content>
+    <Content Include="DbSprocsToObjectResult.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>DbSprocsToObjectResult.csGen</LastGenOutput>
+    </Content>
+    <Content Include="FluentValidator.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>FluentValidator.cs</LastGenOutput>
+    </Content>
+    <Content Include="KoViewModel.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>KoViewModel.cs</LastGenOutput>
+    </Content>
+    <Content Include="Manager.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>Manager.cs</LastGenOutput>
+    </Content>
+    <Content Include="Sample.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>Sample.txt</LastGenOutput>
+    </Content>
+    <Content Include="SqlProcedures.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>SqlProcedures.sql</LastGenOutput>
+    </Content>
+    <Content Include="SqlTableToCodeFirstEF.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>SqlTableToCodeFirstEF.cs</LastGenOutput>
+    </Content>
+    <Content Include="SqlTableToCodeFirstEFManager.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>SqlTableToCodeFirstEFManager.cs</LastGenOutput>
+    </Content>
+    <Content Include="SqlTableToCSharpClass.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>SqlTableToCSharpClass.cs</LastGenOutput>
+    </Content>
+    <Content Include="SqlTableToCSharpInterface.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>SqlTableToCSharpInterface.cs</LastGenOutput>
+    </Content>
+    <Content Include="SqlTableToCSharpMapper.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>SqlTableToCSharpMapper.cs</LastGenOutput>
+    </Content>
+    <Content Include="SqlToCodeFirstEntities.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>SqlToCodeFirstEntities.cs</LastGenOutput>
+    </Content>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
