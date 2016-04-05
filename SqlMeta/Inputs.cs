@@ -12,6 +12,7 @@
 
 		#region Secondary Inputs
 		private const string ContextFolder = "Contexts";
+		private const string ManagerFolder = "Managers";
 		private const string EntityFolder = "Entities";
 		private const string InterfaceFolder = EntityFolder + ".Interfaces";
 		#endregion
@@ -19,7 +20,12 @@
 		#region Publically Used Properties
 		public static string Connection = BuildConnectionString();
 		public static string Database = DatabaseName;
+
+		public static string ContextName = Database + "Context";
+		public static string ManagerName = Database + "Manager";
+
 		public static string DatabaseNamespace = BuildNamespace(ContextFolder);
+		public static string ManagerNamespace = BuildNamespace(ManagerFolder);
 		public static string EntityNamespace = BuildNamespace(EntityFolder);
 		public static string InterfaceNamespace = BuildNamespace(InterfaceFolder);
 		#endregion

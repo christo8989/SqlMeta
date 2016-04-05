@@ -115,7 +115,6 @@
     </Content>
     <Content Include="SqlTableToCodeFirstEFManager.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>SqlTableToCodeFirstEFManager.cs</LastGenOutput>
     </Content>
     <Content Include="SqlTableToCSharpClass.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
